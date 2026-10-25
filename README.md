@@ -31,7 +31,7 @@ GUIDE  OSTEOPROSIS THERAPY
 
 ## 🚀 如何使用 (How to Use)
 
-1.  下載本專案中的 `osteoporosis_decision_system_v4.html` 檔案。
+1.  線上版：https://yht5582-source.github.io/OSTEOPOROSIS/ ，或下載本專案的 `index.html`。
 2.  使用任何現代網頁瀏覽器 (如 Google Chrome, Microsoft Edge, Safari) 開啟該檔案。
 3.  在左側的 **「病患臨床參數輸入」** 區塊，依序設定病患的真實狀況：
     *   選擇生理族群/年齡。
@@ -49,6 +49,7 @@ GUIDE  OSTEOPROSIS THERAPY
 
 ## 📜 更新日誌 (Changelog)
 
+*   **V6 (2026-10-25 除錯與健保條文更新):** 健保判定改依 5.6.1、5.6.3（115/8/1 生效）與 5.6.2 原文：補上骨質疏少合併 ≥2 處脊椎/髖骨折、遠端橈骨/近端肱骨骨折（denosumab、學名藥 alendronate）、T ≤ -2.5 合併 RA/胰島素糖尿病/類固醇 >5 mg/天 >3 個月；促骨生成劑需「無法耐受或治療失敗」與 24 個月內新骨折，romosozumab 限停經後婦女且與 teriparatide 擇一。骨折改為分部位/次數/時間輸入，FRAX 與 CrCl 改數值輸入；修正 teriparatide 禁忌原因錯置、raloxifene VTE 禁忌、denosumab 重度腎病低血鈣警示、denosumab 停藥接續流程；每個藥物顯示健保條件核對清單。決策引擎移至 `/*ENGINE-START*/…/*ENGINE-END*/`，以 `node tests.cjs` 測試。
 *   **V4 (動態排序版):** 導入強大的動態排序引擎 (Dynamic Sorting Engine)，藥物卡片會依據「極高風險首選/腎衰首選 > 健保給付 > 自費 > 臨床禁忌」的邏輯自動由上而下重新洗牌。
 *   **V3 (UI 與邏輯修正):** 修正 T-Score 滑桿比例尺的視覺對位問題 (採用絕對定位精準對齊 -5.0, -2.5, -1.0, 0.0)；新增「糖尿病 (Diabetes)」獨立臨床變數與專屬醫學警示框。
 *   **V2:** 修正 T-Score 數值左右反向的顯示邏輯。

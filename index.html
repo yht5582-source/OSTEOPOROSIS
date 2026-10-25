@@ -3,14 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>骨質疏鬆症治療指引與健保用藥決策系統 (V5 結合 FRAX 版)</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>骨質疏鬆症治療指引與健保用藥決策系統 (V6)</title>
+  <meta name="description" content="依 TOA/AACE 風險分級、FRAX 與台灣健保 5.6.1–5.6.3（115/8/1）推導骨鬆用藥">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif; }
     .badge-nhi-pass { background-color: #def7ec; color: #03543f; border: 1px solid #31c48d; }
     .badge-nhi-fail { background-color: #feecdc; color: #9b1c1c; border: 1px solid #f98080; }
     .badge-self-pay { background-color: #e1effe; color: #1e429f; border: 1px solid #76a9fa; }
+    .field { width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: .5rem; padding: .5rem .75rem; font-size: .875rem; }
+    .field:focus { outline: none; box-shadow: 0 0 0 2px #6366f1; }
+    .chk { display: flex; align-items: flex-start; gap: .5rem; }
+    .chk input { margin-top: .2rem; accent-color: #4f46e5; flex-shrink: 0; }
+    details > summary { cursor: pointer; list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+    @media print { #input-panel, header .no-print, #btn-print { display: none !important; } main { display: block !important; } }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
@@ -20,313 +28,555 @@
         <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2">
           <i class="fa-solid fa-bone text-amber-300"></i> 骨質疏鬆症臨床指引與健保用藥決策系統
         </h1>
-        <p class="text-blue-100 text-sm mt-1">依據 TOA 指引、台灣健保規定與 FRAX® 風險評估推導</p>
+        <p class="text-blue-100 text-sm mt-1">風險分級依 TOA 2023 / AACE 2020，健保依藥品給付規定 5.6.1、5.6.3（115/8/1 生效）與 5.6.2</p>
       </div>
-      <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-lg text-xs">
+      <div class="no-print flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-lg text-xs">
         <i class="fa-solid fa-shield-halved text-teal-300"></i>
         <span>臨床決策輔助工具 (僅供專業醫事人員評估參考)</span>
       </div>
     </div>
   </header>
+
   <main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-    <section class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6 space-y-6">
+    <section id="input-panel" class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6 space-y-6 self-start">
       <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
         <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-sliders text-indigo-600"></i> 病患臨床參數輸入
         </h2>
-        <button id="btn-reset" class="text-xs text-slate-500 hover:text-indigo-600 transition">
+        <button id="btn-reset" type="button" class="text-xs text-slate-500 hover:text-indigo-600 transition">
           <i class="fa-solid fa-rotate-right"></i> 重設條件
         </button>
       </div>
-      <form id="calc-form" class="space-y-5">
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1">1. 生理族群 / 年齡</label>
-          <select id="patientGroup" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-            <option value="postmenopausal">停經後女性 (Postmenopausal)</option>
-            <option value="male_ge50">50 歲以上男性 (Male ≥ 50 y/o)</option>
-            <option value="other">50 歲以下男性或停經前女性 (需探尋次發性原因)</option>
-          </select>
-        </div>
-        
-        <!-- 滑桿 -->
-        <div>
-          <div class="flex justify-between items-center mb-1">
-            <label class="text-sm font-semibold text-slate-700">2. 雙能量 X 光骨密度 DXA 最低 T-Score</label>
-            <span id="tScoreVal" class="text-base font-bold text-indigo-600">-3.0</span>
-          </div>
-          <input id="tScore" type="range" min="-5.0" max="0.0" step="0.1" value="-3.0" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 relative z-10">
-          <div class="relative w-full text-xs text-slate-600 mt-2 h-4">
-            <span class="absolute left-0">-5.0 (極重度)</span>
-            <span class="absolute left-[50%] -translate-x-1/2">-2.5 (骨鬆)</span>
-            <span class="absolute left-[80%] -translate-x-1/2">-1.0 (缺乏)</span>
-            <span class="absolute right-0">0.0 (正常)</span>
-          </div>
-        </div>
 
+      <form id="calc-form" class="space-y-5" onsubmit="return false">
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1">3. 脆弱性骨折病史 (Fragility Fracture)</label>
-          <select id="fractureSite" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-            <option value="none">無骨折病史</option>
-            <option value="spine_hip_1">脊椎 或 髖部 骨折 (1 處)</option>
-            <option value="spine_hip_multi">脊椎 或 髖部 骨折 (≥ 2 處)</option>
-            <option value="recent_12m">近 12 個月內發生之新骨折 (極高風險)</option>
-            <option value="wrist_other">僅手腕、肱骨骨折或其它非脊椎/髖部骨折</option>
+          <label for="patientGroup" class="block text-sm font-semibold text-slate-700 mb-1">1. 生理族群</label>
+          <select id="patientGroup" class="field">
+            <option value="pmw">停經後女性</option>
+            <option value="male50">男性 ≥ 50 歲</option>
+            <option value="maleYoung">男性 &lt; 50 歲</option>
+            <option value="premeno">停經前女性</option>
           </select>
         </div>
 
-        <!-- FRAX 區塊 (V5 新增) -->
+        <div>
+          <div class="flex justify-between items-center mb-1 gap-2">
+            <label for="tScore" class="text-sm font-semibold text-slate-700">2. DXA 最低 T-score（腰椎/全髖/股骨頸）</label>
+            <input id="tScoreNum" type="number" step="0.1" min="-6" max="3" value="-3.0" aria-label="T-score 數值" class="w-20 text-right font-bold text-indigo-600 border border-slate-300 rounded px-2 py-0.5">
+          </div>
+          <input id="tScore" type="range" min="-5.0" max="0.0" step="0.1" value="-3.0" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+          <div class="relative w-full text-xs text-slate-600 mt-2 h-4" aria-hidden="true">
+            <span class="absolute left-0">-5.0</span>
+            <span class="absolute left-[50%] -translate-x-1/2">-2.5 骨鬆</span>
+            <span class="absolute left-[80%] -translate-x-1/2">-1.0</span>
+            <span class="absolute right-0">0.0</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">滑桿範圍 -5～0；超出範圍請直接輸入數字。</p>
+        </div>
+
+        <div class="space-y-3">
+          <span class="block text-sm font-semibold text-slate-700">3. 脆弱性骨折（低能量骨折）</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="text-xs text-slate-600">脊椎或髖部骨折
+              <select id="spineHip" class="field mt-1">
+                <option value="0">無</option><option value="1">1 處</option><option value="2">≥ 2 處（或 2 次）</option>
+              </select>
+            </label>
+            <label class="text-xs text-slate-600">遠端橈骨或近端肱骨骨折
+              <select id="radHum" class="field mt-1">
+                <option value="0">無</option><option value="1">1 處</option><option value="2">≥ 2 處（或 2 次）</option>
+              </select>
+            </label>
+          </div>
+          <label class="text-xs text-slate-600 block">最近一次新診斷骨折
+            <select id="recent" class="field mt-1">
+              <option value="none">無 / 超過 24 個月前</option>
+              <option value="12">12 個月內</option>
+              <option value="24">12–24 個月前</option>
+            </select>
+          </label>
+          <label class="chk text-sm"><input type="checkbox" id="fxOnTx"><span>持續使用抗骨吸收藥 ≥ 12 個月仍發生新骨折</span></label>
+          <label class="chk text-sm"><input type="checkbox" id="intolerant"><span>經評估無法耐受抗骨吸收藥副作用（須載明病歷）</span></label>
+        </div>
+
         <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
           <div class="flex justify-between items-center mb-2">
-            <label class="block text-sm font-semibold text-slate-700">4. FRAX® 十年骨折風險評估</label>
-            <a href="https://frax.shef.ac.uk/FRAX/tool.aspx?country=26" target="_blank" class="text-[11px] font-bold bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition flex items-center gap-1">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> 官方計算機
+            <span class="block text-sm font-semibold text-slate-700">4. FRAX® 十年骨折風險（選填）</span>
+            <a href="https://frax.shef.ac.uk/FRAX/tool.aspx?country=26" target="_blank" rel="noopener" class="text-[11px] font-bold bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition flex items-center gap-1">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> 台灣 FRAX
             </a>
           </div>
-          <label class="flex items-start gap-2 cursor-pointer mt-1">
-            <input type="checkbox" id="cond_frax" class="accent-blue-600 rounded mt-0.5">
-            <span class="text-sm text-slate-700">病患經 FRAX 計算結果已達標：<br><span class="text-xs text-blue-700 font-medium">主要骨折風險 ≥ 20% 或 髖部骨折風險 ≥ 3%</span></span>
-          </label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="text-xs text-slate-600">主要骨折 (%)<input id="fraxMof" type="number" min="0" max="100" step="0.1" class="field mt-1" placeholder="例 22"></label>
+            <label class="text-xs text-slate-600">髖部骨折 (%)<input id="fraxHip" type="number" min="0" max="100" step="0.1" class="field mt-1" placeholder="例 3.5"></label>
+          </div>
+          <p class="text-[11px] text-blue-800 mt-2">高風險：主要 ≥ 20% 或髖部 ≥ 3%；極高風險：主要 &gt; 30% 或髖部 &gt; 4.5%。FRAX 不影響健保資格。</p>
         </div>
 
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1">5. 腎絲球過濾率 (eGFR, mL/min/1.73m²)</label>
-          <div class="grid grid-cols-2 gap-3">
-            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-slate-50 text-sm">
-              <input type="radio" name="egfr" value="ge35" checked class="accent-indigo-600">
-              <span>≥ 35 mL/min (正常/輕中度)</span>
-            </label>
-            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-slate-50 text-sm">
-              <input type="radio" name="egfr" value="lt35" class="accent-indigo-600">
-              <span class="text-rose-600 font-semibold">< 35 mL/min (重度腎病)</span>
-            </label>
+          <label for="crcl" class="block text-sm font-semibold text-slate-700 mb-1">5. 腎功能 CrCl / eGFR (mL/min)</label>
+          <div class="flex gap-3 items-center">
+            <input id="crcl" type="number" min="0" max="200" step="1" value="60" class="field">
+            <label class="chk text-sm whitespace-nowrap"><input type="checkbox" id="dialysis"><span>透析中</span></label>
           </div>
+          <p class="text-[11px] text-slate-500 mt-1">Zoledronate / alendronate：CrCl &lt; 35 不建議；risedronate：&lt; 30 不建議。</p>
         </div>
-        
+
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-2">6. 特殊臨床條件與禁忌評估 (可複選)</label>
+          <span class="block text-sm font-semibold text-slate-700 mb-2">6. 共病、禁忌與既往治療</span>
           <div class="space-y-2 text-sm">
-            <label class="flex items-center gap-2"><input type="checkbox" id="cond_cv" class="accent-indigo-600 rounded"><span>過去 1 年內曾有心肌梗塞 (MI) 或 中風 (Stroke)</span></label>
-            <label class="flex items-center gap-2"><input type="checkbox" id="cond_gi" class="accent-indigo-600 rounded"><span>活動性上消化道潰瘍 / 逆流性食道炎</span></label>
-            <label class="flex items-center gap-2"><input type="checkbox" id="cond_hypocalcemia" class="accent-indigo-600 rounded"><span>未校正之低血鈣症 (Hypocalcemia)</span></label>
-            <label class="flex items-center gap-2"><input type="checkbox" id="cond_steroid" class="accent-indigo-600 rounded"><span>長期使用高劑量類固醇 (Prednisolone ≥ 7.5mg/d)</span></label>
-            <label class="flex items-center gap-2"><input type="checkbox" id="cond_prior_denosumab" class="accent-indigo-600 rounded"><span>剛停用 Denosumab (保力加) 需接續治療</span></label>
-            <label class="flex items-center gap-2 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2">
-              <input type="checkbox" id="cond_dm" class="accent-amber-600 rounded">
-              <span class="text-amber-800 font-medium">患有糖尿病 (Diabetes) - 需搭配 FRAX 評估</span>
+            <label class="chk"><input type="checkbox" id="cv"><span>曾有心肌梗塞或中風</span></label>
+            <label class="chk"><input type="checkbox" id="hypoCa"><span>未矯正之低血鈣 / 維生素 D 缺乏</span></label>
+            <label class="chk"><input type="checkbox" id="esoph"><span>食道狹窄/弛緩不能，或無法坐直/站立 30 分鐘</span></label>
+            <label class="chk"><input type="checkbox" id="giActive"><span>活動性上消化道疾病（潰瘍、逆流性食道炎）</span></label>
+            <label class="chk"><input type="checkbox" id="vte"><span>靜脈血栓栓塞 (VTE) 病史</span></label>
+            <label class="chk"><input type="checkbox" id="teriContra"><span>高血鈣、Paget 病/不明原因 ALP 上升、骨骼放射治療史或骨轉移/骨惡性腫瘤</span></label>
+            <label class="chk"><input type="checkbox" id="dental"><span>近期需侵入性牙科處置（拔牙、植牙）</span></label>
+            <label class="chk"><input type="checkbox" id="falls"><span>高跌倒風險 / 曾有受傷性跌倒</span></label>
+          </div>
+          <div class="mt-3 bg-amber-50 p-3 rounded-lg border border-amber-200 space-y-2 text-sm">
+            <span class="block text-xs font-bold text-amber-800">健保 5.6.1 高風險因子（T ≤ -2.5 無骨折時適用）</span>
+            <label class="chk"><input type="checkbox" id="ra"><span>類風溼性關節炎</span></label>
+            <label class="chk"><input type="checkbox" id="dmInsulin"><span>糖尿病且使用胰島素</span></label>
+            <label class="chk"><input type="checkbox" id="steroid"><span>糖皮質類固醇 &gt; 5 mg/天 (prednisolone 當量) 超過 3 個月</span></label>
+            <label class="chk"><input type="checkbox" id="dm"><span>糖尿病（未使用胰島素）</span></label>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <label class="text-xs text-slate-600">Denosumab 使用狀態
+              <select id="priorDmab" class="field mt-1">
+                <option value="none">未曾使用</option>
+                <option value="on">使用中（考慮停藥/換藥）</option>
+                <option value="stopped">已停用，尚未接續</option>
+              </select>
+            </label>
+            <label class="text-xs text-slate-600">曾用過促骨生成劑
+              <select id="priorAnabolic" class="field mt-1">
+                <option value="none">無</option>
+                <option value="teri">Teriparatide</option>
+                <option value="romo">Romosozumab</option>
+              </select>
             </label>
           </div>
         </div>
       </form>
     </section>
-    
+
     <section class="lg:col-span-7 space-y-6">
       <div id="status-card" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 transition-all">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <span class="text-xs uppercase tracking-wider text-slate-600 font-bold">臨床風險分級</span>
-            <h3 id="risk-level-badge" class="text-xl font-black text-rose-600 mt-0.5">極高骨折風險 (Very High Risk)</h3>
+            <h3 id="risk-level-badge" class="text-xl font-black mt-0.5" aria-live="polite"></h3>
           </div>
-          <div id="nhi-badge" class="px-3 py-1.5 rounded-full text-xs font-bold badge-nhi-pass flex items-center gap-1.5">
-            <i class="fa-solid fa-circle-check"></i> 符合健保給付標準 (骨鬆合併骨折)
+          <div class="flex items-center gap-2">
+            <div id="nhi-badge" class="px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5"></div>
+            <button id="btn-print" type="button" class="text-xs text-slate-500 hover:text-indigo-600 border border-slate-200 rounded-full px-2 py-1" title="列印結果"><i class="fa-solid fa-print"></i></button>
           </div>
         </div>
-        <p id="clinical-summary-text" class="text-sm text-slate-600 mt-3 leading-relaxed"></p>
-        <p id="dm-warning-text" class="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 mt-3 hidden font-medium">
-          <i class="fa-solid fa-circle-info mr-1"></i> 【糖尿病注意】：糖友的 DXA 數值常高估實際骨強度。建議點擊左側「官方計算機」使用 FRAX，並手動勾選類風濕關節炎(作為替代風險)進行校正評估。
-        </p>
+        <ul id="risk-reasons" class="text-xs text-slate-600 mt-3 flex flex-wrap gap-1.5"></ul>
+        <p id="clinical-summary-text" class="text-sm text-slate-700 mt-3 leading-relaxed"></p>
+        <div id="warnings" class="space-y-2 mt-3"></div>
       </div>
+
       <div class="space-y-4">
         <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-pills text-teal-600"></i> 推薦治療藥物動態排序 (V5)
+          <i class="fa-solid fa-pills text-teal-600"></i> 推薦治療藥物排序
         </h3>
         <div id="drug-list" class="space-y-3"></div>
       </div>
-      <div id="warning-box" class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 space-y-2">
+
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 space-y-2">
         <div class="font-bold flex items-center gap-1.5 text-blue-800 text-sm">
-          <i class="fa-solid fa-triangle-exclamation"></i> 骨鬆藥物治療三大金律 (Clinical Pearls)
+          <i class="fa-solid fa-triangle-exclamation"></i> 骨鬆藥物治療金律 (Clinical Pearls)
         </div>
-        <ul class="list-disc list-inside space-y-1 text-slate-700">
-          <li><strong>促骨生成劑療程限制：</strong> Teriparatide (最高24個月)、Romosozumab (限12個月) 結束後，<strong>必須立即無縫接續骨吸收抑制劑</strong>。</li>
-          <li><strong>Denosumab 停藥反彈：</strong> <strong>絕對不可任意中斷或延遲施打</strong>；若停用必須以雙磷酸鹽類固化。</li>
-          <li><strong>基礎補充與口腔照護：</strong> 每日需補充 <strong>鈣質 1000-1200 mg</strong> 與 <strong>維生素 D3 800-1000 IU</strong>。開始抗骨吸收藥物前應先完成拔牙評估。</li>
+        <ul class="list-disc pl-5 space-y-1 text-slate-700">
+          <li><strong>極高風險先促骨生成：</strong>先 romosozumab（12 個月）或 teriparatide（終生 ≤ 24 個月），結束後<strong>立即接續抗骨吸收劑</strong>，否則增加的骨密度會流失。</li>
+          <li><strong>Denosumab 不可延遲或任意停藥：</strong>延遲 &gt; 7 個月即可能多發脊椎骨折反彈；停藥須於最後一劑後約 6 個月給 zoledronate（或持續口服雙磷酸鹽），並追蹤骨轉換指標。</li>
+          <li><strong>基礎補充：</strong>鈣（飲食＋補充）每日 1000–1200 mg、維生素 D 800–1000 IU，目標 25(OH)D ≥ 30 ng/mL；開始抗骨吸收劑或 romosozumab 前先矯正低血鈣。</li>
+          <li><strong>口腔：</strong>開始前完成牙科評估與必要拔牙；治療中維持口腔衛生，降低顎骨壞死 (ONJ) 風險。</li>
+          <li><strong>藥物假期：</strong>口服雙磷酸鹽約 5 年、zoledronate 約 3 年後重新評估；仍屬高風險者可延長（口服至 10 年、IV 至 6 年）。Denosumab 不適用藥物假期。</li>
+          <li><strong>健保：</strong>一次限用一項藥物，不得併用其他骨鬆治療藥物；teriparatide 與 romosozumab 僅得擇一，除耐受性不良不得互換。</li>
         </ul>
       </div>
+
+      <details class="bg-white border border-slate-200 rounded-xl p-4 text-xs text-slate-700">
+        <summary class="font-bold text-slate-800 text-sm flex items-center gap-1.5"><i class="fa-solid fa-scale-balanced text-slate-500"></i> 健保給付條文摘要與出處 <span class="text-slate-400 font-normal">（點擊展開）</span></summary>
+        <div class="mt-3 space-y-3 leading-relaxed">
+          <div><strong>5.6.1 抗骨質再吸收劑（115/8/1）</strong>
+            <ol class="list-decimal pl-5 mt-1 space-y-1">
+              <li>停經後婦女（alendronate、zoledronate、denosumab、risedronate 35 mg 亦可用於男性；risedronate 150 mg 不可用於男性）因骨質疏鬆症（T ≤ -2.5）引起脊椎或髖部骨折，或骨質疏少症（-2.5 &lt; T &lt; -1.0）引起脊椎或髖部 2 處或 2 次（含）以上骨折。</li>
+              <li>Denosumab 及 alendronate（除 COVAXIN、Mosmass、Apo-Alendronate、Fosamax、Binosto、Alendro-Dthen 外）另可用於上述程度之遠端橈骨或近端肱骨骨折。</li>
+              <li>T ≤ -2.5 且合併類風溼性關節炎、糖尿病使用胰島素、或類固醇 &gt; 5 mg/天超過 3 個月任一項者，限 denosumab 及上述 alendronate，須載明病歷。</li>
+              <li>一次限用一項藥物；雙磷酸鹽須先測血清 creatinine，符合仿單建議。</li>
+            </ol>
+          </div>
+          <div><strong>5.6.2 Teriparatide</strong>：停經後骨質疏鬆婦女，或原發性/性腺功能低下之骨質疏鬆男性；T ≤ -3.0，脊椎或髖部 ≥ 2 處骨折，且經評估無法耐受抗骨吸收劑副作用、或持續使用抗骨吸收劑 ≥ 12 個月仍發生至少 1 處新骨折；≤ 18 支並於 2 年內用完；與 romosozumab 擇一。</div>
+          <div><strong>5.6.3 Romosozumab（115/8/1）</strong>：限停經後骨質疏鬆婦女；遠端橈骨、近端肱骨、脊椎或髖部骨折，T ≤ -3.0，且 24 個月內 (1) ≥ 2 處骨折其中含 1 處新診斷骨折，或 (2) 經評估無法耐受副作用或持續使用抗骨吸收劑仍發生 ≥ 1 處新診斷骨折；≤ 24 支並於一年內用完；與 teriparatide 擇一。</div>
+          <div class="text-slate-500">出處：健保署 <a class="underline" href="https://www.nhi.gov.tw/ch/cp-20268-ebde6-3258-1.html" target="_blank" rel="noopener">5.6.1 修訂公告（健保審字第1150055156號，115/7/15）</a>、
+            <a class="underline" href="https://www.nhi.gov.tw/ch/dl-100507-4c553f9b0bcb41a585eeed4fec06b534-1.pdf" target="_blank" rel="noopener">5.6.3 修訂對照表（115/8/1 生效）</a>、
+            <a class="underline" href="https://www.nhi.gov.tw/ch/cp-17914-b92e7-3258-1.html" target="_blank" rel="noopener">5.6.1/5.6.3 修訂公告（114/3/1）</a>。5.6.2 條文依醫院藥品資訊頁轉載，開立前請再核對健保署最新版。條文核對日期：2026-10-25。</div>
+        </div>
+      </details>
     </section>
   </main>
+
   <script>
-    const DRUG_DB = [
-      {
-        id: 'romosozumab', name: 'Romosozumab (益穩挺 Evenity)', class: '硬化蛋白抑制劑 (雙重作用)', route: '皮下注射 210 mg / 每月一次',
-        nhiEligible: (t, f, egfr, cv) => (f === 'spine_hip_multi' || f === 'recent_12m') && t <= -3.0,
-        mechanism: '抑制 Sclerostin，產生「促進造骨」與「輕度抑制破骨」雙重機轉。',
-        precautions: '❌ 1年內心肌梗塞(MI)或中風者禁用。滿1年必接續抗骨吸收藥物。',
-        contraindicated: (conds) => conds.cv || conds.hypocalcemia, contraReason: '近期心血管事件或低血鈣症禁用'
-      },
-      {
-        id: 'teriparatide', name: 'Teriparatide (骨穩 Forteo)', class: '副甲狀腺素類似物 (促骨生成劑)', route: '每日皮下注射 20 mcg',
-        nhiEligible: (t, f, egfr, cv) => (f === 'spine_hip_multi' || (f === 'spine_hip_1' && t <= -3.0)),
-        mechanism: '刺激造骨細胞，啟動新骨生成，大幅改善骨微結構。',
-        precautions: '療程結束必接續抗骨吸收藥物。骨腫瘤或放射治療史禁用。',
-        contraindicated: (conds) => conds.hypocalcemia, contraReason: '骨骼放射治療史或高血鈣禁用'
-      },
-      {
-        id: 'denosumab', name: 'Denosumab (保力加 Prolia)', class: 'RANKL 單株抗體 (強效抑制吸收)', route: '皮下注射 60 mg / 每 6 個月一次',
-        nhiEligible: (t, f, egfr, cv) => (f === 'spine_hip_1' || f === 'spine_hip_multi' || f === 'recent_12m') && t <= -2.5,
-        mechanism: '阻斷 RANKL，強效抑制破骨細胞。',
-        precautions: '★ 不經腎臟代謝。★ 絕對禁止延遲或任意停藥，以免引發反彈性骨折！',
-        contraindicated: (conds) => conds.hypocalcemia, contraReason: '未矯正之低血鈣症禁用'
-      },
-      {
-        id: 'zoledronate', name: 'Zoledronic acid (骨力強 Aclasta)', class: '靜脈注射雙磷酸鹽', route: '靜脈輸注 5 mg / 每年一次',
-        nhiEligible: (t, f, egfr, cv) => (f === 'spine_hip_1' || f === 'spine_hip_multi' || f === 'recent_12m') && t <= -2.5,
-        mechanism: '抑制破骨細胞內 FPP 合成酶，促使其凋亡。',
-        precautions: '❌ eGFR < 35 禁用。輸注後可能發燒骨痛，可給予 Acetaminophen。',
-        contraindicated: (conds, egfr) => egfr === 'lt35' || conds.hypocalcemia, contraReason: '腎功能不全(eGFR<35)禁用'
-      },
-      {
-        id: 'alendronate', name: 'Alendronate (福善美 Fosamax)', class: '口服雙磷酸鹽', route: '口服每週 1 錠 (70 mg)',
-        nhiEligible: (t, f, egfr, cv) => (f === 'spine_hip_1' || f === 'spine_hip_multi' || f === 'recent_12m') && t <= -2.5,
-        mechanism: '抑制破骨細胞活性，減少骨質流失。',
-        precautions: '❌ 無法直立坐立30分鐘者禁用。晨起空腹溫水吞服。',
-        contraindicated: (conds, egfr) => egfr === 'lt35' || conds.gi || conds.hypocalcemia, contraReason: '腸胃道禁忌或腎功能不全禁用'
-      },
-      {
-        id: 'raloxifene', name: 'Raloxifene (鈣穩 Evista)', class: 'SERM', route: '口服每日 1 錠 (60 mg)',
-        nhiEligible: (t, f, egfr, cv) => (f === 'spine_hip_1' || f === 'spine_hip_multi' || f === 'recent_12m') && t <= -2.5,
-        mechanism: '骨骼具雌激素促效作用，抑制骨吸收。',
-        precautions: '僅限停經後女性。❌ 具靜脈血栓栓塞(VTE)病史者禁用。',
-        contraindicated: (conds, egfr, group) => group !== 'postmenopausal', contraReason: '男性或停經前婦女不適用'
-      }
-    ];
+/*ENGINE-START*/
+const OP = (() => {
+  const DRUGS = [
+    { id: 'romosozumab', name: 'Romosozumab (益穩挺 Evenity)', cls: '硬化蛋白抑制劑（促骨生成＋抑制吸收）', anabolic: true,
+      route: '每月皮下注射 210 mg（105 mg × 2 支），共 12 個月',
+      mechanism: '抑制 sclerostin，活化 Wnt 訊號：促進造骨並輕度抑制破骨，12 個月內骨密度上升最快。',
+      precautions: '曾有心肌梗塞或中風者不建議使用（EMA 列為禁忌，FDA 為 1 年內）。療程滿 12 個月須立即接續抗骨吸收劑。注射前矯正低血鈣。' },
+    { id: 'teriparatide', name: 'Teriparatide (骨穩 Forteo 等)', cls: '副甲狀腺素類似物（促骨生成）', anabolic: true,
+      route: '每日皮下注射 20 mcg，終生累計 ≤ 24 個月',
+      mechanism: '間歇性 PTH 受體刺激，增加造骨細胞數量與活性，改善骨小樑微結構。',
+      precautions: '高血鈣、Paget 病/不明 ALP 上升、骨骼放射治療史、骨轉移或骨惡性腫瘤禁用。可能姿勢性低血壓。停藥後須接續抗骨吸收劑。' },
+    { id: 'denosumab', name: 'Denosumab (保力加 Prolia)', cls: 'RANKL 單株抗體（強效抑制吸收）',
+      route: '每 6 個月皮下注射 60 mg',
+      mechanism: '阻斷 RANKL，抑制破骨細胞生成與活性；不經腎臟代謝。',
+      precautions: '必須準時每 6 個月施打，停藥需接續雙磷酸鹽，否則反彈性多發脊椎骨折。CrCl < 30 或透析者嚴重低血鈣風險高，先評估 CKD-MBD 並密切追蹤血鈣。' },
+    { id: 'zoledronate', name: 'Zoledronic acid (骨力強 Aclasta)', cls: '靜脈注射雙磷酸鹽',
+      route: '每年一次靜脈輸注 5 mg（≥ 15 分鐘）',
+      mechanism: '抑制破骨細胞內 farnesyl pyrophosphate synthase，促其凋亡。',
+      precautions: 'CrCl < 35 禁用；輸注前補足水分並確認血鈣。首次輸注後 1–3 天可能類流感反應，可給 acetaminophen。' },
+    { id: 'alendronate', name: 'Alendronate (福善美 Fosamax 等)', cls: '口服雙磷酸鹽',
+      route: '每週口服 70 mg',
+      mechanism: '沉積於骨表面，抑制破骨細胞骨吸收。',
+      precautions: '晨起空腹以 200 mL 白開水吞服，服後 30 分鐘內保持直立、不進食。食道疾病或無法直立者禁用；CrCl < 35 不建議。' },
+    { id: 'risedronate', name: 'Risedronate (瑞骨卓 Actonel 等)', cls: '口服雙磷酸鹽',
+      route: '每週口服 35 mg 或每月 150 mg',
+      mechanism: '沉積於骨表面，抑制破骨細胞骨吸收。',
+      precautions: '服法同 alendronate。CrCl < 30 不建議。健保：男性僅限 35 mg 劑型。' },
+    { id: 'raloxifene', name: 'Raloxifene (鈣穩 Evista)', cls: '選擇性雌激素受體調節劑 (SERM)',
+      route: '每日口服 60 mg',
+      mechanism: '於骨骼呈雌激素促效作用抑制骨吸收，主要降低脊椎骨折；可降低侵襲性乳癌風險。',
+      precautions: '僅限停經後女性。VTE 病史禁用；冠心病或中風高風險者中風死亡增加，慎用。不降低髖部骨折。' }
+  ];
 
-    function evaluateDecision() {
-      const group = document.getElementById('patientGroup').value;
-      const tScore = parseFloat(document.getElementById('tScore').value);
-      const fracture = document.getElementById('fractureSite').value;
-      const egfr = document.querySelector('input[name="egfr"]:checked').value;
-      const conds = {
-        cv: document.getElementById('cond_cv').checked, gi: document.getElementById('cond_gi').checked,
-        hypocalcemia: document.getElementById('cond_hypocalcemia').checked, steroid: document.getElementById('cond_steroid').checked,
-        priorDenosumab: document.getElementById('cond_prior_denosumab').checked, dm: document.getElementById('cond_dm').checked,
-        frax: document.getElementById('cond_frax').checked // FRAX 變數加入
-      };
+  const ALLOWED = {
+    romosozumab: ['pmw'], teriparatide: ['pmw', 'male50', 'maleYoung'], denosumab: ['pmw', 'male50', 'maleYoung'],
+    zoledronate: ['pmw', 'male50', 'maleYoung'], alendronate: ['pmw', 'male50', 'maleYoung'],
+    risedronate: ['pmw', 'male50', 'maleYoung'], raloxifene: ['pmw']
+  };
 
-      document.getElementById('tScoreVal').innerText = tScore.toFixed(1);
+  const DEFAULTS = {
+    group: 'pmw', t: null, spineHip: 0, radHum: 0, recent: 'none', fxOnTx: false, intolerant: false,
+    fraxMof: null, fraxHip: null, crcl: null, dialysis: false,
+    cv: false, hypoCa: false, esoph: false, giActive: false, vte: false, teriContra: false, dental: false, falls: false,
+    ra: false, dmInsulin: false, steroid: false, dm: false, priorDmab: 'none', priorAnabolic: 'none'
+  };
 
-      // V5 風險分級邏輯：加入 FRAX 條件
-      let riskLevel = '中低度骨折風險', riskClass = 'text-emerald-600', isVeryHighRisk = false, isHighRisk = false;
-      
-      if (fracture === 'recent_12m' || fracture === 'spine_hip_multi' || (tScore <= -3.0 && fracture !== 'none')) {
-        riskLevel = '極高骨折風險 (Very High Risk)'; riskClass = 'text-rose-600 font-black'; isVeryHighRisk = true;
-      } else if (tScore <= -2.5 || fracture === 'spine_hip_1' || fracture === 'wrist_other' || conds.steroid || conds.frax) {
-        // 如果 FRAX 達標，強制升級為高風險
-        riskLevel = '高骨折風險 (High Risk)'; riskClass = 'text-amber-600 font-bold'; isHighRisk = true;
-      } else if (tScore > -2.5 && tScore <= -1.0) {
-        riskLevel = '骨量缺乏 (Osteopenia)'; riskClass = 'text-blue-600';
-      } else { 
-        riskLevel = '骨密度正常'; riskClass = 'text-slate-600'; 
-      }
+  const num = v => (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) ? null : Number(v);
 
-      const riskBadge = document.getElementById('risk-level-badge');
-      riskBadge.innerText = riskLevel; riskBadge.className = `text-xl mt-0.5 ${riskClass}`;
+  function normalize(input) {
+    const p = Object.assign({}, DEFAULTS, input || {});
+    p.t = num(p.t); p.fraxMof = num(p.fraxMof); p.fraxHip = num(p.fraxHip); p.crcl = num(p.crcl);
+    p.spineHip = Number(p.spineHip) || 0; p.radHum = Number(p.radHum) || 0;
+    return p;
+  }
 
-      const nhiBadge = document.getElementById('nhi-badge');
-      const hasMajorFrac = (fracture === 'spine_hip_1' || fracture === 'spine_hip_multi' || fracture === 'recent_12m');
-      
-      if (tScore <= -3.0 && fracture === 'spine_hip_multi') {
-        nhiBadge.className = 'px-3 py-1.5 rounded-full text-xs font-bold badge-nhi-pass flex items-center gap-1.5';
-        nhiBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> 符合健保促骨生成劑及各類藥物給付';
-      } else if (tScore <= -2.5 && hasMajorFrac) {
-        nhiBadge.className = 'px-3 py-1.5 rounded-full text-xs font-bold badge-nhi-pass flex items-center gap-1.5';
-        nhiBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> 符合健保給付 (骨鬆合併脊椎/髖骨折)';
-      } else if (tScore <= -2.5 || conds.frax) {
-        // FRAX 達標但未符合健保絕對條件，建議自費
-        nhiBadge.className = 'px-3 py-1.5 rounded-full text-xs font-bold badge-self-pay flex items-center gap-1.5';
-        nhiBadge.innerHTML = '<i class="fa-solid fa-circle-info"></i> 健保未給付 (高風險，強烈建議自費抗骨吸收治療)';
-      } else {
-        nhiBadge.className = 'px-3 py-1.5 rounded-full text-xs font-bold badge-nhi-fail flex items-center gap-1.5';
-        nhiBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> 未達藥物介入標準';
-      }
+  function assessRisk(p) {
+    const fx = p.spineHip + p.radHum;
+    const anyFx = fx > 0 || p.recent !== 'none' || p.fxOnTx;
+    const very = [], high = [];
+    if (p.recent === '12') very.push('12 個月內新骨折');
+    if (p.fxOnTx) very.push('治療中仍發生骨折');
+    if (fx >= 2) very.push('多處脆弱性骨折');
+    if (p.steroid && anyFx) very.push('使用類固醇期間骨折');
+    if (p.t !== null && p.t <= -3.0) very.push('T-score ≤ -3.0');
+    if (p.falls && (anyFx || (p.t !== null && p.t <= -2.5))) very.push('骨鬆合併高跌倒風險');
+    if ((p.fraxMof !== null && p.fraxMof > 30) || (p.fraxHip !== null && p.fraxHip > 4.5)) very.push('FRAX 主要 > 30% 或髖部 > 4.5%');
 
-      let summaryText = conds.priorDenosumab ? '⚠️ 剛停用 Denosumab，必須立即接續雙磷酸鹽類！ ' : '';
-      if (isVeryHighRisk) {
-        summaryText += '首選「先促骨生成後抗吸收」之循序治療策略。';
-      } else if (isHighRisk && conds.frax && tScore > -2.5) {
-        summaryText += '病患骨密度雖為骨量缺乏，但經 FRAX 評估已達高骨折風險，應強烈建議啟動抗骨吸收藥物治療 (自費)。';
-      } else if (isHighRisk) {
-        summaryText += '應啟動抗骨吸收藥物治療。';
-      } else {
-        summaryText += '建議維持生活型態調整與鈣質補充。';
-      }
-      document.getElementById('clinical-summary-text').innerText = summaryText;
+    if (p.t !== null && p.t <= -2.5) high.push('T-score ≤ -2.5');
+    if (p.spineHip >= 1) high.push('脊椎或髖部脆弱性骨折');
+    if (p.radHum >= 1 && p.t !== null && p.t < -1.0) high.push('骨質疏少合併橈骨/肱骨脆弱性骨折');
+    if ((p.fraxMof !== null && p.fraxMof >= 20) || (p.fraxHip !== null && p.fraxHip >= 3)) high.push('FRAX 主要 ≥ 20% 或髖部 ≥ 3%');
 
-      const dmWarning = document.getElementById('dm-warning-text');
-      if (conds.dm) dmWarning.classList.remove('hidden');
-      else dmWarning.classList.add('hidden');
+    let level;
+    if (very.length) level = 'veryHigh';
+    else if (high.length) level = 'high';
+    else if (p.t === null) level = 'unknown';
+    else if (p.t < -1.0) level = 'osteopenia';
+    else level = 'normal';
+    return { level, reasons: very.length ? very : high, very, high, treat: level === 'veryHigh' || level === 'high' };
+  }
 
-      // 動態排序
-      let scoredDrugs = DRUG_DB.map(drug => {
-        const isContra = drug.contraindicated(conds, egfr, group);
-        const isNHIPass = drug.nhiEligible(tScore, fracture, egfr, conds.cv);
-        let score = 3; 
-        let badgeHTML = '';
-        let cardStyle = 'border-slate-200 bg-white opacity-100';
+  // 每一項回傳 { label, met }，全部 met 才符合
+  function nhiCriteria(id, p) {
+    const female = p.group === 'pmw';
+    const allowedSex = ALLOWED[id].includes(p.group);
+    const t = p.t;
+    const op = t !== null && t <= -2.5;
+    const open = t !== null && t > -2.5 && t < -1.0;
+    const fx = p.spineHip + p.radHum;
+    const base = (op && p.spineHip >= 1) || (open && p.spineHip >= 2);
+    const ext = (op && p.radHum >= 1) || (open && p.radHum >= 2);
+    const rf = op && (p.ra || p.dmInsulin || p.steroid);
+    const crclOk = lim => p.crcl === null || (p.crcl >= lim && !p.dialysis);
+    const sexLabel = id === 'raloxifene' || id === 'romosozumab' ? '停經後婦女' : '停經後婦女或男性';
 
-        if (isContra) {
-          score = 4;
-          cardStyle = 'border-rose-300 bg-rose-50/70 opacity-60'; 
-          badgeHTML = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-700">❌ 臨床禁忌 (${drug.contraReason})</span>`;
-        } else if (isVeryHighRisk && (drug.id === 'romosozumab' || drug.id === 'teriparatide')) {
-          score = 1;
-          cardStyle = 'border-indigo-400 bg-indigo-50/50 shadow-md scale-[1.01]';
-          badgeHTML = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-100 text-indigo-700">⭐️ 極高風險首選</span>';
-        } else if (egfr === 'lt35' && drug.id === 'denosumab') {
-          score = 1;
-          cardStyle = 'border-teal-400 bg-teal-50/50 shadow-md scale-[1.01]';
-          badgeHTML = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-teal-100 text-teal-700">⭐️ 腎衰竭首選</span>';
-        } else if (isHighRisk && conds.frax && !isNHIPass && (drug.id === 'denosumab' || drug.id === 'zoledronate' || drug.id === 'alendronate')) {
-          // FRAX 達標的推薦藥物
-          score = 2;
-          cardStyle = 'border-blue-300 bg-blue-50/30';
-          badgeHTML = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-700">📌 FRAX 達標推薦 (自費)</span>';
-        } else if (isNHIPass) {
-          score = 2;
-          badgeHTML = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-700">✓ 健保給付</span>';
-        } else {
-          score = 3;
-          badgeHTML = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-600">自費 / 次線</span>';
-        }
+    if (id === 'teriparatide') {
+      return { clause: '5.6.2', paths: [[
+        { label: '停經後婦女或男性', met: allowedSex },
+        { label: 'T-score ≤ -3.0', met: t !== null && t <= -3.0 },
+        { label: '脊椎或髖部 ≥ 2 處骨折', met: p.spineHip >= 2 },
+        { label: '無法耐受抗骨吸收劑，或使用 ≥ 12 個月仍新骨折', met: p.intolerant || p.fxOnTx },
+        { label: '未曾以 romosozumab 給付（除耐受不良）', met: p.priorAnabolic !== 'romo' || p.intolerant }
+      ]] };
+    }
+    if (id === 'romosozumab') {
+      const recent24 = p.recent !== 'none';
+      const common = [
+        { label: '停經後婦女', met: female },
+        { label: 'T-score ≤ -3.0', met: t !== null && t <= -3.0 },
+        { label: '24 個月內有新診斷骨折（橈骨/肱骨/脊椎/髖部）', met: recent24 && fx >= 1 },
+        { label: '未曾以 teriparatide 給付（除耐受不良）', met: p.priorAnabolic !== 'teri' || p.intolerant }
+      ];
+      return { clause: '5.6.3', paths: [
+        common.concat([{ label: '(1) 24 個月內 ≥ 2 處骨折', met: fx >= 2 }]),
+        common.concat([{ label: '(2) 無法耐受副作用或持續抗骨吸收劑仍骨折', met: p.intolerant || p.fxOnTx }])
+      ] };
+    }
+    const sex = { label: sexLabel, met: allowedSex };
+    const paths = [[sex, { label: 'T ≤ -2.5 合併脊椎/髖部骨折，或 -2.5 < T < -1.0 合併脊椎/髖部 ≥ 2 處骨折', met: base }]];
+    if (id === 'denosumab' || id === 'alendronate') {
+      const brand = id === 'alendronate' ? '（學名藥；Fosamax 等原廠/部分品項除外）' : '';
+      paths.push([sex, { label: '同上程度之遠端橈骨或近端肱骨骨折' + brand, met: ext }]);
+      paths.push([sex, { label: 'T ≤ -2.5 合併 RA、胰島素治療糖尿病或類固醇 > 5 mg/天 > 3 個月' + brand, met: rf }]);
+    }
+    if (id === 'zoledronate' || id === 'alendronate') paths.forEach(path => path.push({ label: 'CrCl ≥ 35（符合仿單）', met: crclOk(35) }));
+    if (id === 'risedronate') paths.forEach(path => path.push({ label: 'CrCl ≥ 30（符合仿單）', met: crclOk(30) }));
+    return { clause: '5.6.1', paths };
+  }
 
-        return { drug, score, badgeHTML, cardStyle };
-      });
+  function nhi(id, p) {
+    const c = nhiCriteria(id, p);
+    const okPath = c.paths.findIndex(path => path.every(x => x.met));
+    return { ok: okPath >= 0, clause: c.clause, paths: c.paths, okPath };
+  }
 
-      scoredDrugs.sort((a, b) => a.score - b.score);
+  function safety(id, p) {
+    const contra = [], cautions = [];
+    const ckdSevere = p.dialysis || (p.crcl !== null && p.crcl < 30);
+    if (p.hypoCa && id !== 'teriparatide' && id !== 'raloxifene') contra.push('未矯正低血鈣（先矯正再用）');
+    if (p.dental && ['romosozumab', 'denosumab', 'zoledronate', 'alendronate', 'risedronate'].includes(id)) cautions.push('先完成侵入性牙科處置（ONJ 風險）');
+    switch (id) {
+      case 'romosozumab':
+        if (p.cv) contra.push('心肌梗塞或中風病史');
+        if (ckdSevere) cautions.push('重度腎病/透析：監測血鈣');
+        break;
+      case 'teriparatide':
+        if (p.teriContra) contra.push('高血鈣/Paget/骨放射治療/骨惡性腫瘤');
+        if (p.priorAnabolic === 'teri') cautions.push('已用過 teriparatide：確認累計未超過 24 個月');
+        if (p.priorDmab !== 'none') cautions.push('由 denosumab 直接轉 teriparatide 會短暫流失髖部骨密度，不建議');
+        if (ckdSevere) cautions.push('重度腎功能不全慎用');
+        break;
+      case 'denosumab':
+        if (ckdSevere) cautions.push('CrCl < 30/透析：嚴重低血鈣風險，先評估 CKD-MBD');
+        break;
+      case 'zoledronate':
+        if (p.dialysis || (p.crcl !== null && p.crcl < 35)) contra.push('CrCl < 35');
+        break;
+      case 'alendronate':
+        if (p.esoph) contra.push('食道疾病或無法直立 30 分鐘');
+        if (p.dialysis || (p.crcl !== null && p.crcl < 35)) contra.push('CrCl < 35 不建議');
+        if (p.giActive) cautions.push('活動性上消化道疾病：優先改用注射劑');
+        break;
+      case 'risedronate':
+        if (p.esoph) contra.push('食道疾病或無法直立 30 分鐘');
+        if (p.dialysis || (p.crcl !== null && p.crcl < 30)) contra.push('CrCl < 30 不建議');
+        if (p.giActive) cautions.push('活動性上消化道疾病：優先改用注射劑');
+        if (p.group !== 'pmw') cautions.push('男性健保僅給付 35 mg 劑型');
+        break;
+      case 'raloxifene':
+        if (p.vte) contra.push('VTE 病史');
+        if (p.cv) cautions.push('冠心病/中風高風險：中風死亡增加');
+        break;
+    }
+    return { contra, cautions };
+  }
 
-      const drugListEl = document.getElementById('drug-list');
-      drugListEl.innerHTML = '';
-      
-      scoredDrugs.forEach(item => {
-        drugListEl.innerHTML += `
-          <div class="p-4 rounded-xl border ${item.cardStyle} transition-all duration-300 space-y-2">
-            <div class="flex justify-between items-start gap-2">
-              <div>
-                <h4 class="font-bold text-slate-900">${item.drug.name}</h4>
-                <p class="text-xs text-indigo-700">${item.drug.class} | ${item.drug.route}</p>
-              </div>
-              <div>${item.badgeHTML}</div>
-            </div>
-            <div class="text-xs text-slate-600 grid grid-cols-2 gap-2 pt-2 border-t border-slate-100/50">
-              <div><strong>機轉：</strong>${item.drug.mechanism}</div>
-              <div><strong>注意事項：</strong>${item.drug.precautions}</div>
-            </div>
-          </div>`;
-      });
+  function firstChoices(p, risk, usable) {
+    const pick = ids => ids.filter(id => usable.has(id));
+    if (p.priorDmab !== 'none') {
+      // denosumab 轉換：以雙磷酸鹽固化；極高風險可考慮 romosozumab
+      const bp = pick(['zoledronate', 'alendronate', 'risedronate']);
+      const extra = risk.level === 'veryHigh' ? pick(['romosozumab']) : [];
+      const res = extra.concat(bp.length ? bp : pick(['denosumab']));
+      return res;
+    }
+    if (p.priorAnabolic !== 'none' && !p.intolerant) {
+      return pick(['denosumab', 'zoledronate', 'alendronate', 'risedronate']);
+    }
+    if (risk.level === 'veryHigh') {
+      const ana = pick(['romosozumab', 'teriparatide']);
+      if (ana.length) return ana;
+      return pick(['denosumab', 'zoledronate']);
+    }
+    if (risk.level === 'high') {
+      const ar = pick(['alendronate', 'risedronate', 'zoledronate', 'denosumab']);
+      return ar.length ? ar : pick(['raloxifene']);
+    }
+    return [];
+  }
+
+  const TIER_ORDER = { first: 0, alt: 1, notNow: 2, contra: 3, na: 4 };
+
+  function evaluate(input) {
+    const p = normalize(input);
+    const risk = assessRisk(p);
+    const treat = risk.treat || p.priorDmab !== 'none';
+    const rows = DRUGS.map(d => {
+      const pop = ALLOWED[d.id].includes(p.group);
+      const s = safety(d.id, p);
+      if (d.id === 'teriparatide' && p.priorDmab !== 'none') s.demote = true;
+      return { drug: d, pop, nhi: nhi(d.id, p), contra: s.contra, cautions: s.cautions, demote: !!s.demote };
+    });
+    const usable = new Set(rows.filter(r => r.pop && !r.contra.length && !r.demote).map(r => r.drug.id));
+    const first = new Set(treat ? firstChoices(p, risk, usable) : []);
+    rows.forEach(r => {
+      if (!r.pop) r.tier = 'na';
+      else if (r.contra.length) r.tier = 'contra';
+      else if (!treat) r.tier = 'notNow';
+      else if (first.has(r.drug.id)) r.tier = 'first';
+      else r.tier = 'alt';
+      // 非首選但健保可給付者排在自費前
+      r.sort = TIER_ORDER[r.tier] * 10 + (r.nhi.ok ? 0 : 1);
+    });
+    rows.sort((a, b) => a.sort - b.sort);
+
+    const nhiAny = rows.filter(r => r.nhi.ok && r.pop).map(r => r.drug.id);
+    const anabolicNhi = nhiAny.filter(id => id === 'romosozumab' || id === 'teriparatide');
+
+    const warnings = [];
+    const W = (tone, text) => warnings.push({ tone, text });
+    if (p.t === null) W('rose', '請輸入 DXA T-score；健保給付皆須以 DXA 為依據。');
+    if (p.group === 'premeno' || p.group === 'maleYoung') W('amber', '停經前女性與 50 歲以下男性應以 Z-score（≤ -2.0 為低於同齡）判讀，T-score 分級不適用；請先檢查次發性原因（類固醇、性腺低下、甲狀旁腺/甲狀腺、吸收不良、腎病、酒精等）。' + (p.group === 'premeno' ? '健保 5.6.1 限停經後婦女，停經前女性不給付。' : ''));
+    if (p.hypoCa) W('rose', '低血鈣/維生素 D 缺乏須先矯正，再開始抗骨吸收劑或 romosozumab。');
+    if (p.priorDmab === 'stopped') W('rose', '已停用 denosumab 但尚未接續：反彈性多發脊椎骨折風險高，應於最後一劑後約 6 個月給 zoledronate（或口服雙磷酸鹽），超過 7 個月未接續屬緊急。');
+    if (p.priorDmab === 'on') W('amber', 'Denosumab 使用中：若要停藥，請規劃於最後一劑後 6 個月接續 zoledronate，並於 3、6 個月追蹤 CTX；不可單純停藥。');
+    if (p.priorAnabolic !== 'none') W('amber', '已完成促骨生成劑療程：須立即接續抗骨吸收劑（denosumab 或雙磷酸鹽）維持療效。');
+    if (p.dm || p.dmInsulin) W('amber', '糖尿病：DXA 會低估骨折風險。FRAX 可勾選「類風溼性關節炎」作為糖尿病替代校正，或以 TBS 調整；健保高風險因子僅認列使用胰島素者。');
+    if (p.steroid) W('amber', '長期類固醇：屬類固醇誘發骨鬆（GIOP），在最低有效劑量下儘早治療，並每 1–2 年追蹤 DXA。');
+    if (p.dialysis || (p.crcl !== null && p.crcl < 30)) W('amber', 'CKD 4–5 / 透析：骨折未必為骨鬆所致，用藥前評估 Ca、P、PTH、ALP、25(OH)D 以排除 CKD-MBD（如無動力骨病），必要時會診腎臟科。');
+    if (p.falls) W('amber', '高跌倒風險：併行跌倒預防（居家環境、視力、肌力平衡訓練、檢視鎮靜藥物）。');
+    if (risk.level === 'veryHigh' && !anabolicNhi.length && (usable.has('romosozumab') || usable.has('teriparatide')) && p.priorDmab === 'none') {
+      W('blue', '極高風險但未達健保促骨生成劑條件：可自費使用，或先以 denosumab/zoledronate 治療並記錄療效。');
     }
 
-    document.querySelectorAll('#calc-form input, #calc-form select').forEach(el => el.addEventListener('change', evaluateDecision));
-    document.getElementById('tScore').addEventListener('input', evaluateDecision);
-    document.getElementById('btn-reset').addEventListener('click', () => { document.getElementById('calc-form').reset(); document.getElementById('tScore').value = "-3.0"; evaluateDecision(); });
-    evaluateDecision();
+    let summary;
+    if (risk.level === 'veryHigh') summary = '極高骨折風險：建議「先促骨生成、後抗骨吸收」之循序治療；若無法使用促骨生成劑，選擇強效抗骨吸收劑（denosumab 或 zoledronate）。';
+    else if (risk.level === 'high') summary = '高骨折風險：應啟動抗骨吸收藥物治療（口服或注射雙磷酸鹽、denosumab），1–2 年後追蹤 DXA。';
+    else if (risk.level === 'osteopenia') summary = '骨質缺乏但未達高風險：以鈣、維生素 D、負重運動與跌倒預防為主；建議計算 FRAX，達 20%/3% 時考慮藥物。';
+    else if (risk.level === 'normal') summary = '骨密度正常：維持生活型態調整，依危險因子定期追蹤。';
+    else summary = '尚無 DXA 數值，無法分級。';
+    if (p.priorDmab !== 'none') summary = 'Denosumab 轉換治療優先：' + summary;
+
+    const nhiStatus = nhiAny.length
+      ? { tone: 'pass', text: anabolicNhi.length ? '符合健保（含促骨生成劑）' : '符合健保抗骨吸收劑給付' }
+      : treat ? { tone: 'self', text: '健保未給付（具治療適應，可自費）' } : { tone: 'fail', text: '未達藥物介入標準' };
+
+    return { input: p, risk, drugs: rows, nhiAny, nhiStatus, warnings, summary };
+  }
+
+  return { DRUGS, ALLOWED, normalize, assessRisk, nhi, safety, evaluate };
+})();
+if (typeof module !== 'undefined') module.exports = OP;
+/*ENGINE-END*/
+
+    const $ = id => document.getElementById(id);
+    const BOOL_IDS = ['fxOnTx', 'intolerant', 'dialysis', 'cv', 'hypoCa', 'esoph', 'giActive', 'vte', 'teriContra', 'dental', 'falls', 'ra', 'dmInsulin', 'steroid', 'dm'];
+    const RISK_UI = {
+      veryHigh: ['極高骨折風險 (Very High Risk)', 'text-rose-600'],
+      high: ['高骨折風險 (High Risk)', 'text-amber-600'],
+      osteopenia: ['骨質缺乏 (Osteopenia)', 'text-blue-600'],
+      normal: ['骨密度正常', 'text-slate-600'],
+      unknown: ['尚未輸入 T-score', 'text-slate-400']
+    };
+    const TIER_UI = {
+      first: ['⭐️ 首選', 'bg-indigo-100 text-indigo-700', 'border-indigo-400 bg-indigo-50/50 shadow-md'],
+      alt: ['替代選項', 'bg-slate-100 text-slate-700', 'border-slate-200 bg-white'],
+      notNow: ['目前不需藥物', 'bg-slate-100 text-slate-500', 'border-slate-200 bg-white opacity-80'],
+      contra: ['❌ 禁忌/不建議', 'bg-rose-100 text-rose-700', 'border-rose-300 bg-rose-50/70 opacity-70'],
+      na: ['非適用族群', 'bg-slate-100 text-slate-400', 'border-slate-200 bg-slate-50 opacity-50']
+    };
+    const TONE = { rose: 'text-rose-800 bg-rose-50 border-rose-200', amber: 'text-amber-800 bg-amber-50 border-amber-200', blue: 'text-blue-800 bg-blue-50 border-blue-200' };
+    const NHI_CLS = { pass: 'badge-nhi-pass', self: 'badge-self-pay', fail: 'badge-nhi-fail' };
+    const NHI_ICON = { pass: 'fa-circle-check', self: 'fa-circle-info', fail: 'fa-triangle-exclamation' };
+
+    function readInput() {
+      const p = {
+        group: $('patientGroup').value, t: $('tScoreNum').value, spineHip: $('spineHip').value, radHum: $('radHum').value,
+        recent: $('recent').value, fraxMof: $('fraxMof').value, fraxHip: $('fraxHip').value, crcl: $('crcl').value,
+        priorDmab: $('priorDmab').value, priorAnabolic: $('priorAnabolic').value
+      };
+      BOOL_IDS.forEach(id => { p[id] = $(id).checked; });
+      return p;
+    }
+
+    function criteriaHTML(n) {
+      return n.paths.map((path, i) => `
+        <ul class="space-y-0.5 ${n.paths.length > 1 ? 'border-l-2 pl-2 ' + (i === n.okPath ? 'border-emerald-400' : 'border-slate-200') : ''}">
+          ${path.map(c => `<li class="${c.met ? 'text-emerald-700' : 'text-slate-500'}"><i class="fa-solid ${c.met ? 'fa-check' : 'fa-xmark'} w-3"></i> ${c.label}</li>`).join('')}
+        </ul>`).join('<div class="text-[10px] text-slate-400 my-1">或</div>');
+    }
+
+    function render() {
+      const r = OP.evaluate(readInput());
+      const [label, cls] = RISK_UI[r.risk.level];
+      const badge = $('risk-level-badge');
+      badge.textContent = label; badge.className = `text-xl font-black mt-0.5 ${cls}`;
+      $('risk-reasons').innerHTML = r.risk.reasons.map(x => `<li class="px-2 py-0.5 rounded-full bg-slate-100">${x}</li>`).join('');
+
+      const nb = $('nhi-badge');
+      nb.className = `px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${NHI_CLS[r.nhiStatus.tone]}`;
+      nb.innerHTML = `<i class="fa-solid ${NHI_ICON[r.nhiStatus.tone]}"></i> ${r.nhiStatus.text}`;
+
+      $('clinical-summary-text').textContent = r.summary;
+      $('warnings').innerHTML = r.warnings.map(w => `<p class="text-sm p-3 rounded-lg border font-medium ${TONE[w.tone]}"><i class="fa-solid fa-circle-info mr-1"></i>${w.text}</p>`).join('');
+
+      $('drug-list').innerHTML = r.drugs.map(row => {
+        const [tl, tcls, card] = TIER_UI[row.tier];
+        const cov = row.pop && row.tier !== 'contra'
+          ? (row.nhi.ok ? `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-700">✓ 健保 ${row.nhi.clause}</span>`
+                        : `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700">自費</span>`) : '';
+        const notes = row.contra.map(c => `<li class="text-rose-700">❌ ${c}</li>`).concat(row.cautions.map(c => `<li class="text-amber-700">⚠️ ${c}</li>`)).join('');
+        return `
+          <div class="p-4 rounded-xl border ${card} transition-all duration-300 space-y-2">
+            <div class="flex justify-between items-start gap-2 flex-wrap">
+              <div>
+                <h4 class="font-bold text-slate-900">${row.drug.name}</h4>
+                <p class="text-xs text-indigo-700">${row.drug.cls} | ${row.drug.route}</p>
+              </div>
+              <div class="flex gap-1 flex-wrap"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${tcls}">${tl}</span>${cov}</div>
+            </div>
+            ${notes ? `<ul class="text-xs space-y-0.5">${notes}</ul>` : ''}
+            <div class="text-xs text-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-100/50">
+              <div><strong>機轉：</strong>${row.drug.mechanism}</div>
+              <div><strong>注意事項：</strong>${row.drug.precautions}</div>
+            </div>
+            <details class="text-xs">
+              <summary class="text-slate-500 hover:text-indigo-600"><i class="fa-solid fa-list-check"></i> 健保 ${row.nhi.clause} 條件核對</summary>
+              <div class="mt-2">${criteriaHTML(row.nhi)}</div>
+            </details>
+          </div>`;
+      }).join('');
+    }
+
+    const slider = $('tScore'), tNum = $('tScoreNum');
+    slider.addEventListener('input', () => { tNum.value = Number(slider.value).toFixed(1); render(); });
+    tNum.addEventListener('input', () => {
+      const v = parseFloat(tNum.value);
+      if (!Number.isNaN(v)) slider.value = Math.min(0, Math.max(-5, v));
+      render();
+    });
+    document.querySelectorAll('#calc-form input, #calc-form select').forEach(el => {
+      if (el !== slider && el !== tNum) el.addEventListener(el.type === 'number' ? 'input' : 'change', render);
+    });
+    $('btn-reset').addEventListener('click', () => { $('calc-form').reset(); slider.value = '-3.0'; tNum.value = '-3.0'; render(); });
+    $('btn-print').addEventListener('click', () => window.print());
+    render();
   </script>
 </body>
 </html>
